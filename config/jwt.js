@@ -1,0 +1,6 @@
+module.exports = {
+  ACCESS_SECRET: process.env.JWT_ACCESS_SECRET,
+  REFRESH_SECRET: process.env.JWT_REFRESH_SECRET,
+  ACCESS_EXPIRE: process.env.JWT_ACCESS_EXPIRE,
+  REFRESH_EXPIRE: process.env.JWT_REFRESH_EXPIRE
+};
