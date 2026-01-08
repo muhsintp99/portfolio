@@ -1,5 +1,7 @@
 const Profile = require("../models/Profile.model");
+const Settings = require("../models/Settings.model");
 const Expense = require("../models/Expense.model");
+const Income = require("../models/Income.model");
 const Todo = require("../models/Todo.model");
 const Note = require("../models/Note.model");
 const Enquiry = require("../models/Enquiry.model");
@@ -17,10 +19,15 @@ exports.getDashboardStats = async (req, res) => {
 
     const [
       profile,
+      settings,
 
       // EXPENSE
       totalExpenseAgg,
       monthlyExpenseAgg,
+
+      // INCOME
+      totalIncomeAgg,
+      monthlyIncomeAgg,
 
       // TODO
       totalTodos,
@@ -43,14 +50,23 @@ exports.getDashboardStats = async (req, res) => {
       totalBlogs,
       publishedBlogs
     ] = await Promise.all([
-      // PROFILE
       Profile.findOne(),
+      Settings.findOne(),
 
       // EXPENSE
       Expense.aggregate([
         { $group: { _id: null, total: { $sum: "$amount" } } }
       ]),
       Expense.aggregate([
+        { $match: { date: { $gte: startOfMonth } } },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]),
+
+      // INCOME
+      Income.aggregate([
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]),
+      Income.aggregate([
         { $match: { date: { $gte: startOfMonth } } },
         { $group: { _id: null, total: { $sum: "$amount" } } }
       ]),
@@ -77,6 +93,16 @@ exports.getDashboardStats = async (req, res) => {
       Blog.countDocuments({ published: true })
     ]);
 
+    // SAFE VALUES
+    const totalExpense = totalExpenseAgg?.[0]?.total || 0;
+    const monthlyExpense = monthlyExpenseAgg?.[0]?.total || 0;
+
+    const totalIncome = totalIncomeAgg?.[0]?.total || 0;
+    const monthlyIncome = monthlyIncomeAgg?.[0]?.total || 0;
+
+    const budgetLimit = settings?.expense?.monthlyLimit || 0;
+    const budgetEnabled = settings?.expense?.alertEnabled || false;
+
     res.json({
       success: true,
       data: {
@@ -84,9 +110,36 @@ exports.getDashboardStats = async (req, res) => {
           completed: !!profile
         },
 
+        settings: {
+          appName: settings?.appName || "Admin Dashboard",
+          currency: settings?.currency || {
+            code: "INR",
+            symbol: "₹"
+          }
+        },
+
         expense: {
-          total: totalExpenseAgg[0]?.total || 0,
-          monthly: monthlyExpenseAgg[0]?.total || 0
+          total: totalExpense,
+          monthly: monthlyExpense
+        },
+
+        income: {
+          total: totalIncome,
+          monthly: monthlyIncome
+        },
+
+        profitLoss: {
+          total: totalIncome - totalExpense,
+          monthly: monthlyIncome - monthlyExpense
+        },
+
+        budget: {
+          enabled: budgetEnabled,
+          limit: budgetLimit,
+          exceeded:
+            budgetEnabled &&
+            budgetLimit > 0 &&
+            monthlyExpense > budgetLimit
         },
 
         todos: {
@@ -118,6 +171,7 @@ exports.getDashboardStats = async (req, res) => {
       }
     });
   } catch (err) {
+    console.error("Dashboard Error:", err);
     res.status(500).json({
       success: false,
       message: err.message

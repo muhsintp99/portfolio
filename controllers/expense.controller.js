@@ -1,8 +1,42 @@
 const Expense = require("../models/Expense.model");
+const Settings = require("../models/Settings.model");
+const Notification = require("../models/Notification.model");
 
 /* CREATE */
 exports.create = async (req, res) => {
   const expense = await Expense.create(req.body);
+
+  const settings = await Settings.findOne();
+  if (!settings || !settings.expense.alertEnabled) {
+    return res.json({ success: true, data: expense });
+  }
+
+  const limit = settings.expense.monthlyLimit;
+  if (!limit || limit <= 0) {
+    return res.json({ success: true, data: expense });
+  }
+
+  const startOfMonth = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    1
+  );
+
+  const monthlyAgg = await Expense.aggregate([
+    { $match: { date: { $gte: startOfMonth } } },
+    { $group: { _id: null, total: { $sum: "$amount" } } }
+  ]);
+
+  const total = monthlyAgg[0]?.total || 0;
+
+  if (total > limit) {
+    await Notification.create({
+      title: "Budget Exceeded",
+      message: `Monthly expense exceeded limit (${total} / ${limit})`,
+      type: "System"
+    });
+  }
+
   res.json({ success: true, data: expense });
 };
 

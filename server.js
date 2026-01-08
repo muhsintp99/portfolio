@@ -23,6 +23,7 @@ app.use("/api/expenses", require("./routes/expense.routes"));
 app.use("/api/blogs", require("./routes/blog.routes"));
 app.use("/api/notes", require("./routes/note.routes"));
 app.use("/api/todos", require("./routes/todo.routes"));
+app.use("/api/income", require("./routes/income.routes"));
 app.use("/api/contacts", require("./routes/contact.routes"));
 app.use("/api/brand", require("./routes/brand.routes"));
 app.use("/api/enquiries", require("./routes/enquiry.routes"));
