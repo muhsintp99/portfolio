@@ -1,17 +1,19 @@
 const Expense = require("../models/Expense.model");
 
-// CREATE
+/* CREATE */
 exports.create = async (req, res) => {
   const expense = await Expense.create(req.body);
   res.json({ success: true, data: expense });
 };
 
-// LIST (with filter)
+/* LIST (FILTERABLE) */
 exports.list = async (req, res) => {
   const { month, year, category } = req.query;
   const filter = {};
 
-  if (category) filter.category = category;
+  if (category) {
+    filter.category = category;
+  }
 
   if (month && year) {
     const start = new Date(year, month - 1, 1);
@@ -23,7 +25,7 @@ exports.list = async (req, res) => {
   res.json({ success: true, data });
 };
 
-// UPDATE
+/* UPDATE */
 exports.update = async (req, res) => {
   const data = await Expense.findByIdAndUpdate(
     req.params.id,
@@ -33,15 +35,15 @@ exports.update = async (req, res) => {
   res.json({ success: true, data });
 };
 
-// DELETE
+/* DELETE */
 exports.remove = async (req, res) => {
   await Expense.findByIdAndDelete(req.params.id);
-  res.json({ success: true });
+  res.json({ success: true, message: "Expense deleted" });
 };
 
-// MONTHLY SUMMARY
+/* MONTHLY SUMMARY (BAR / LINE CHART) */
 exports.monthlySummary = async (req, res) => {
-  const { year } = req.query;
+  const year = Number(req.query.year) || new Date().getFullYear();
 
   const data = await Expense.aggregate([
     {
@@ -58,13 +60,13 @@ exports.monthlySummary = async (req, res) => {
         total: { $sum: "$amount" }
       }
     },
-    { $sort: { "_id": 1 } }
+    { $sort: { _id: 1 } }
   ]);
 
   res.json({ success: true, data });
 };
 
-// CATEGORY SUMMARY
+/* CATEGORY SUMMARY (PIE CHART) */
 exports.categorySummary = async (req, res) => {
   const data = await Expense.aggregate([
     {
@@ -72,7 +74,8 @@ exports.categorySummary = async (req, res) => {
         _id: "$category",
         total: { $sum: "$amount" }
       }
-    }
+    },
+    { $sort: { total: -1 } }
   ]);
 
   res.json({ success: true, data });

@@ -1,6 +1,6 @@
 const Enquiry = require("../models/Enquiry.model");
 
-// 📊 Overall analytics
+/* OVERVIEW */
 exports.overview = async (req, res) => {
   const total = await Enquiry.countDocuments();
 
@@ -36,8 +36,7 @@ exports.overview = async (req, res) => {
   });
 };
 
-
-// 📆 Follow-ups due today
+/* TODAY FOLLOW-UPS */
 exports.todayFollowUps = async (req, res) => {
   const start = new Date();
   start.setHours(0, 0, 0, 0);
@@ -52,8 +51,7 @@ exports.todayFollowUps = async (req, res) => {
   res.json({ success: true, data });
 };
 
-
-// 📈 Monthly trend
+/* MONTHLY TREND */
 exports.monthlyTrend = async (req, res) => {
   const year = Number(req.query.year) || new Date().getFullYear();
 
@@ -72,7 +70,7 @@ exports.monthlyTrend = async (req, res) => {
         count: { $sum: 1 }
       }
     },
-    { $sort: { "_id": 1 } }
+    { $sort: { _id: 1 } }
   ]);
 
   res.json({ success: true, data });

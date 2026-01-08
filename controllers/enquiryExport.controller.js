@@ -5,12 +5,8 @@ exports.exportCSV = async (req, res) => {
   const { status, from, to } = req.query;
   const filter = {};
 
-  // filter by status
-  if (status) {
-    filter.status = status;
-  }
+  if (status) filter.status = status;
 
-  // filter by date range
   if (from && to) {
     filter.createdAt = {
       $gte: new Date(from),
@@ -36,5 +32,5 @@ exports.exportCSV = async (req, res) => {
 
   res.header("Content-Type", "text/csv");
   res.attachment("enquiries-report.csv");
-  return res.send(csv);
+  res.send(csv);
 };

@@ -3,12 +3,10 @@ const FollowUp = require("../models/FollowUp.model");
 const Notification = require("../models/Notification.model");
 const { sendEmail } = require("../utils/email");
 
-
-// CREATE ENQUIRY (PUBLIC)
+/* CREATE (PUBLIC) */
 exports.createEnquiry = async (req, res) => {
   const enquiry = await Enquiry.create(req.body);
 
-  // DB Notification
   await Notification.create({
     title: "New Enquiry",
     message: `New enquiry from ${enquiry.name}`,
@@ -16,7 +14,6 @@ exports.createEnquiry = async (req, res) => {
     relatedId: enquiry._id
   });
 
-  // 📧 Email Notification
   await sendEmail({
     to: process.env.ADMIN_EMAIL,
     subject: "New Enquiry Received",
@@ -32,31 +29,42 @@ exports.createEnquiry = async (req, res) => {
   res.json({ success: true, data: enquiry });
 };
 
-
-// LIST ALL ENQUIRIES (ADMIN)
+/* LIST (ADMIN) */
 exports.listEnquiries = async (req, res) => {
-  const enquiries = await Enquiry.find().sort({ createdAt: -1 });
-  res.json({ success: true, data: enquiries });
+  const data = await Enquiry.find().sort({ createdAt: -1 });
+  res.json({ success: true, data });
 };
 
-// UPDATE ENQUIRY STATUS
+/* COUNT */
+exports.count = async (req, res) => {
+  const total = await Enquiry.countDocuments();
+  res.json({ success: true, count: total });
+};
+
+/* GET ONE */
+exports.getOne = async (req, res) => {
+  const data = await Enquiry.findById(req.params.id);
+  res.json({ success: true, data });
+};
+
+/* UPDATE STATUS / ASSIGN */
 exports.updateEnquiry = async (req, res) => {
-  const enquiry = await Enquiry.findByIdAndUpdate(
+  const data = await Enquiry.findByIdAndUpdate(
     req.params.id,
     req.body,
     { new: true }
   );
-  res.json({ success: true, data: enquiry });
+  res.json({ success: true, data });
 };
 
-// DELETE ENQUIRY
+/* DELETE */
 exports.deleteEnquiry = async (req, res) => {
   await Enquiry.findByIdAndDelete(req.params.id);
   await FollowUp.deleteMany({ enquiryId: req.params.id });
   res.json({ success: true });
 };
 
-// ADD FOLLOW-UP
+/* ADD FOLLOW-UP */
 exports.addFollowUp = async (req, res) => {
   const followUp = await FollowUp.create({
     enquiryId: req.params.id,
@@ -72,7 +80,6 @@ exports.addFollowUp = async (req, res) => {
     { new: true }
   );
 
-  // DB Notification
   await Notification.create({
     title: "Enquiry Follow-Up",
     message: `Follow-up scheduled for ${enquiry.name}`,
@@ -80,14 +87,13 @@ exports.addFollowUp = async (req, res) => {
     relatedId: enquiry._id
   });
 
-  // 📧 Email Notification
   await sendEmail({
     to: process.env.ADMIN_EMAIL,
     subject: "Enquiry Follow-Up Scheduled",
     html: `
       <h3>Follow-Up Scheduled</h3>
       <p><b>Name:</b> ${enquiry.name}</p>
-      <p><b>Next Follow-Up:</b> ${new Date(
+      <p><b>Date:</b> ${new Date(
         req.body.followUpDate
       ).toDateString()}</p>
       <p><b>Note:</b> ${req.body.note}</p>
@@ -97,20 +103,19 @@ exports.addFollowUp = async (req, res) => {
   res.json({ success: true, data: followUp });
 };
 
-
-// GET FOLLOW-UPS FOR ENQUIRY
+/* GET FOLLOW-UPS */
 exports.getFollowUps = async (req, res) => {
-  const followUps = await FollowUp.find({
+  const data = await FollowUp.find({
     enquiryId: req.params.id
   }).sort({ followUpDate: -1 });
 
-  res.json({ success: true, data: followUps });
+  res.json({ success: true, data });
 };
 
-// DASHBOARD: TODAY FOLLOW-UPS
+/* DASHBOARD – TODAY FOLLOW-UPS */
 exports.todayFollowUps = async (req, res) => {
   const today = new Date();
-  today.setHours(0,0,0,0);
+  today.setHours(0, 0, 0, 0);
 
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);

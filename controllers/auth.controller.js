@@ -26,21 +26,27 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   const user = await User.findOne({ email });
-  if (!user) return res.status(400).json({ message: "Invalid credentials" });
+  if (!user) {
+    return res.status(400).json({ message: "Invalid credentials" });
+  }
 
   const ok = await bcrypt.compare(password, user.password);
-  if (!ok) return res.status(400).json({ message: "Invalid credentials" });
+  if (!ok) {
+    return res.status(400).json({ message: "Invalid credentials" });
+  }
 
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
 
-  user.refreshToken = refreshToken;
-  await user.save();
+  // ✅ update without triggering validation
+  await User.updateOne(
+    { _id: user._id },
+    { refreshToken }
+  );
 
-  // 🔐 set refresh token in cookie
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: false,        // true in production (https)
+    secure: false, // true in production
     sameSite: "strict",
     maxAge: 7 * 24 * 60 * 60 * 1000
   });
@@ -74,9 +80,13 @@ exports.refreshToken = async (req, res) => {
 
 // LOGOUT
 exports.logout = async (req, res) => {
-  await User.findByIdAndUpdate(req.user.id, { refreshToken: null });
+  await User.updateOne(
+    { _id: req.user.id },
+    { refreshToken: null }
+  );
 
   res.clearCookie("refreshToken");
   res.json({ success: true, message: "Logged out" });
 };
+
 
