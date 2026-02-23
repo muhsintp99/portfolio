@@ -1,18 +1,43 @@
 require("dotenv").config();
 const express = require("express");
+const cors = require("cors");
 const path = require("path");
 const cookieParser = require("cookie-parser");
+
 require("./config/db")();
 require("./services/dailyAnalytics.service");
 
 const app = express();
+
+/* ======================================
+   ✅ CORS CONFIG (ALLOW ALL ORIGINS)
+====================================== */
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // allow all origins dynamically
+      callback(null, true);
+    },
+    credentials: true, // allow cookies
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+/* ======================================
+   MIDDLEWARE
+====================================== */
 app.use(express.json());
 app.use(cookieParser());
 
-// serve uploads
+/* ======================================
+   STATIC FILES
+====================================== */
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// routes
+/* ======================================
+   ROUTES
+====================================== */
 app.use("/api/upload", require("./routes/upload.routes"));
 app.use("/api/auth", require("./routes/auth.routes"));
 app.use("/api/dashboard", require("./routes/dashboard.routes"));
@@ -31,16 +56,18 @@ app.use("/api/notifications", require("./routes/notification.routes"));
 app.use("/api/enquiry-analytics", require("./routes/enquiryAnalytics.routes"));
 app.use("/api/enquiries-export", require("./routes/enquiryExport.routes"));
 
+/* ======================================
+   HEALTH CHECK ROUTES
+====================================== */
 app.get("/", (req, res) => {
   res.send(`
-    <body style="padding: 0; margin:0;font-family: monospace;">
-    <div style="padding: 0; margin:0; background-color: black; display: flex; flex-direction: column; align-items: center;justify-content: center; height: 100vh; color: bisque;">
-        <h1 style="padding: 0; margin:0;">Welcome... 🚀</h1>
-        </br>
-        <h2 style="padding: 0; margin:0;"> Server running on port ${process.env.PORT} </h2>
-    </div>
+    <body style="margin:0;font-family: monospace;">
+      <div style="background:black;display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;color:bisque;">
+        <h1>Welcome... 🚀</h1>
+        <h2>Server running on port ${process.env.PORT}</h2>
+      </div>
     </body>
-    `);
+  `);
 });
 
 app.get("/api", (_, res) => {
@@ -51,6 +78,11 @@ app.get("/api", (_, res) => {
   });
 });
 
-app.listen(process.env.PORT, () => {
-  console.log(`🚀 Server running on port ${process.env.PORT}`);
+/* ======================================
+   START SERVER
+====================================== */
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });

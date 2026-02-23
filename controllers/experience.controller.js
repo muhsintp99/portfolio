@@ -1,6 +1,5 @@
 const Experience = require("../models/Experience.model");
-const fs = require("fs");
-const path = require("path");
+const cloudinary = require("../config/cloudinary");
 
 /* CREATE */
 exports.create = async (req, res) => {
@@ -8,10 +7,12 @@ exports.create = async (req, res) => {
     const data = { ...req.body };
 
     if (req.file) {
-      data.certificate = `/uploads/${req.params.folder}/${req.file.filename}`;
+      data.certificate = req.file.path;
+      data.certificateId = req.file.filename;
     }
 
     const exp = await Experience.create(data);
+
     res.json({ success: true, data: exp });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -34,6 +35,7 @@ exports.count = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const exp = await Experience.findById(req.params.id);
+
     if (!exp) {
       return res.status(404).json({ message: "Experience not found" });
     }
@@ -41,15 +43,13 @@ exports.update = async (req, res) => {
     const data = { ...req.body };
 
     if (req.file) {
-      // delete old certificate image
-      if (exp.certificate) {
-        const oldPath = path.join(process.cwd(), exp.certificate);
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
-        }
+      // 🔥 delete old image
+      if (exp.certificateId) {
+        await cloudinary.uploader.destroy(exp.certificateId).catch(() => {});
       }
 
-      data.certificate = `/uploads/${req.params.folder}/${req.file.filename}`;
+      data.certificate = req.file.path;
+      data.certificateId = req.file.filename;
     }
 
     const updated = await Experience.findByIdAndUpdate(
@@ -66,20 +66,22 @@ exports.update = async (req, res) => {
 
 /* DELETE */
 exports.remove = async (req, res) => {
-  const exp = await Experience.findById(req.params.id);
+  try {
+    const exp = await Experience.findById(req.params.id);
 
-  if (!exp) {
-    return res.status(404).json({ message: "Experience not found" });
-  }
-
-  // delete certificate image
-  if (exp.certificate) {
-    const imgPath = path.join(process.cwd(), exp.certificate);
-    if (fs.existsSync(imgPath)) {
-      fs.unlinkSync(imgPath);
+    if (!exp) {
+      return res.status(404).json({ message: "Experience not found" });
     }
-  }
 
-  await exp.deleteOne();
-  res.json({ success: true, message: "Experience deleted" });
+    // 🔥 delete from cloudinary
+    if (exp.certificateId) {
+      await cloudinary.uploader.destroy(exp.certificateId).catch(() => {});
+    }
+
+    await exp.deleteOne();
+
+    res.json({ success: true, message: "Experience deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };

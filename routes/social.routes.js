@@ -3,7 +3,7 @@ const auth = require("../middleware/auth.middleware");
 const upload = require("../middleware/upload.middleware");
 const ctrl = require("../controllers/social.controller");
 
-// fixed folder for social icons
+/* FIXED CLOUDINARY FOLDER */
 const socialFolder = (req, res, next) => {
   req.params.folder = "socials";
   next();

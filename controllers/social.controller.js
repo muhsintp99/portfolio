@@ -1,6 +1,5 @@
 const Social = require("../models/Social.model");
-const fs = require("fs");
-const path = require("path");
+const cloudinary = require("../config/cloudinary");
 
 /* CREATE */
 exports.create = async (req, res) => {
@@ -8,17 +7,19 @@ exports.create = async (req, res) => {
     const data = { ...req.body };
 
     if (req.file) {
-      data.image = `/uploads/${req.params.folder}/${req.file.filename}`;
+      data.image = req.file.path;
+      data.imageId = req.file.filename;
     }
 
     const social = await Social.create(data);
+
     res.json({ success: true, data: social });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-/* LIST (PUBLIC) */
+/* LIST */
 exports.list = async (req, res) => {
   const data = await Social.find().sort({ createdAt: -1 });
   res.json({ success: true, data });
@@ -34,6 +35,7 @@ exports.count = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const social = await Social.findById(req.params.id);
+
     if (!social) {
       return res.status(404).json({ message: "Social not found" });
     }
@@ -41,15 +43,13 @@ exports.update = async (req, res) => {
     const data = { ...req.body };
 
     if (req.file) {
-      // delete old image
-      if (social.image) {
-        const oldPath = path.join(process.cwd(), social.image);
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
-        }
+      // delete old cloudinary image
+      if (social.imageId) {
+        await cloudinary.uploader.destroy(social.imageId).catch(() => {});
       }
 
-      data.image = `/uploads/${req.params.folder}/${req.file.filename}`;
+      data.image = req.file.path;
+      data.imageId = req.file.filename;
     }
 
     const updated = await Social.findByIdAndUpdate(
@@ -66,20 +66,22 @@ exports.update = async (req, res) => {
 
 /* DELETE */
 exports.remove = async (req, res) => {
-  const social = await Social.findById(req.params.id);
+  try {
+    const social = await Social.findById(req.params.id);
 
-  if (!social) {
-    return res.status(404).json({ message: "Social not found" });
-  }
-
-  // delete image
-  if (social.image) {
-    const imgPath = path.join(process.cwd(), social.image);
-    if (fs.existsSync(imgPath)) {
-      fs.unlinkSync(imgPath);
+    if (!social) {
+      return res.status(404).json({ message: "Social not found" });
     }
-  }
 
-  await social.deleteOne();
-  res.json({ success: true, message: "Social deleted" });
+    // delete from cloudinary
+    if (social.imageId) {
+      await cloudinary.uploader.destroy(social.imageId).catch(() => {});
+    }
+
+    await social.deleteOne();
+
+    res.json({ success: true, message: "Social deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };

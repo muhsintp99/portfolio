@@ -3,7 +3,7 @@ const auth = require("../middleware/auth.middleware");
 const upload = require("../middleware/upload.middleware");
 const ctrl = require("../controllers/brand.controller");
 
-// 👇 FIXED FOLDER FOR THIS ROUTE
+/* FIXED CLOUDINARY FOLDER */
 const brandFolder = (req, res, next) => {
   req.params.folder = "brands";
   next();

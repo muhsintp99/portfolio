@@ -44,12 +44,20 @@ exports.login = async (req, res) => {
     { refreshToken }
   );
 
+  // res.cookie("refreshToken", refreshToken, {
+  //   httpOnly: true,
+  //   secure: false, // true in production
+  //   sameSite: "strict",
+  //   maxAge: 7 * 24 * 60 * 60 * 1000
+  // });
+
   res.cookie("refreshToken", refreshToken, {
     httpOnly: true,
-    secure: false, // true in production
-    sameSite: "strict",
-    maxAge: 7 * 24 * 60 * 60 * 1000
+    secure: false,        // true in production (HTTPS)
+    sameSite: "lax",      // NOT "strict"
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
+
 
   res.json({
     success: true,

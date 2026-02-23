@@ -3,7 +3,7 @@ const auth = require("../middleware/auth.middleware");
 const upload = require("../middleware/upload.middleware");
 const ctrl = require("../controllers/note.controller");
 
-// fixed folder for notes
+/* FIXED CLOUDINARY FOLDER */
 const noteFolder = (req, res, next) => {
   req.params.folder = "notes";
   next();

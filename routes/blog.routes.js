@@ -1,15 +1,20 @@
 const router = require("express").Router();
 const auth = require("../middleware/auth.middleware");
-const upload = require("../middleware/upload.middleware");
+const upload = require("../middleware/upload.middleware"); // cloudinary multer
 const ctrl = require("../controllers/blog.controller");
 
-// fixed folder for blogs
+/* --------------------------------------------------
+   FIXED CLOUDINARY FOLDER → blogs
+-------------------------------------------------- */
 const blogFolder = (req, res, next) => {
   req.params.folder = "blogs";
   next();
 };
 
-/* CREATE */
+/* ==================================================
+   CREATE BLOG
+   POST /api/blog
+================================================== */
 router.post(
   "/",
   auth,
@@ -18,13 +23,22 @@ router.post(
   ctrl.create
 );
 
-/* LIST (PUBLIC) */
+/* ==================================================
+   LIST BLOGS (PUBLIC)
+   GET /api/blog
+================================================== */
 router.get("/", ctrl.list);
 
-/* COUNT */
+/* ==================================================
+   BLOG COUNT
+   GET /api/blog/count
+================================================== */
 router.get("/count", ctrl.count);
 
-/* UPDATE */
+/* ==================================================
+   UPDATE BLOG
+   PUT /api/blog/:id
+================================================== */
 router.put(
   "/:id",
   auth,
@@ -33,7 +47,10 @@ router.put(
   ctrl.update
 );
 
-/* DELETE */
+/* ==================================================
+   DELETE BLOG
+   DELETE /api/blog/:id
+================================================== */
 router.delete("/:id", auth, ctrl.remove);
 
 module.exports = router;

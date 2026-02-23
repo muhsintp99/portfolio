@@ -1,6 +1,5 @@
 const Certificate = require("../models/Certificate.model");
-const fs = require("fs");
-const path = require("path");
+const cloudinary = require("../config/cloudinary");
 
 /* CREATE */
 exports.create = async (req, res) => {
@@ -8,17 +7,19 @@ exports.create = async (req, res) => {
     const data = { ...req.body };
 
     if (req.file) {
-      data.image = `/uploads/${req.params.folder}/${req.file.filename}`;
+      data.image = req.file.path;
+      data.imageId = req.file.filename;
     }
 
     const cert = await Certificate.create(data);
+
     res.json({ success: true, data: cert });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-/* LIST ALL */
+/* LIST */
 exports.list = async (req, res) => {
   const data = await Certificate.find().sort({ year: -1 });
   res.json({ success: true, data });
@@ -34,23 +35,21 @@ exports.count = async (req, res) => {
 exports.update = async (req, res) => {
   try {
     const cert = await Certificate.findById(req.params.id);
+
     if (!cert) {
       return res.status(404).json({ message: "Certificate not found" });
     }
 
     const data = { ...req.body };
 
-    // replace image
     if (req.file) {
-      // delete old image
-      if (cert.image) {
-        const oldPath = path.join(process.cwd(), cert.image);
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
-        }
+      // 🔥 delete old image from cloudinary
+      if (cert.imageId) {
+        await cloudinary.uploader.destroy(cert.imageId).catch(() => {});
       }
 
-      data.image = `/uploads/${req.params.folder}/${req.file.filename}`;
+      data.image = req.file.path;
+      data.imageId = req.file.filename;
     }
 
     const updated = await Certificate.findByIdAndUpdate(
@@ -67,20 +66,22 @@ exports.update = async (req, res) => {
 
 /* DELETE */
 exports.remove = async (req, res) => {
-  const cert = await Certificate.findById(req.params.id);
+  try {
+    const cert = await Certificate.findById(req.params.id);
 
-  if (!cert) {
-    return res.status(404).json({ message: "Certificate not found" });
-  }
-
-  // delete image file
-  if (cert.image) {
-    const imgPath = path.join(process.cwd(), cert.image);
-    if (fs.existsSync(imgPath)) {
-      fs.unlinkSync(imgPath);
+    if (!cert) {
+      return res.status(404).json({ message: "Certificate not found" });
     }
-  }
 
-  await cert.deleteOne();
-  res.json({ success: true, message: "Certificate deleted" });
+    // 🔥 delete from cloudinary
+    if (cert.imageId) {
+      await cloudinary.uploader.destroy(cert.imageId).catch(() => {});
+    }
+
+    await cert.deleteOne();
+
+    res.json({ success: true, message: "Certificate deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };

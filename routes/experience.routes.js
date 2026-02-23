@@ -3,7 +3,7 @@ const auth = require("../middleware/auth.middleware");
 const upload = require("../middleware/upload.middleware");
 const ctrl = require("../controllers/experience.controller");
 
-// fixed folder for experience certificates
+/* FIXED CLOUDINARY FOLDER */
 const experienceFolder = (req, res, next) => {
   req.params.folder = "experience-certificates";
   next();

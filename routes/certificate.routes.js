@@ -3,7 +3,7 @@ const auth = require("../middleware/auth.middleware");
 const upload = require("../middleware/upload.middleware");
 const ctrl = require("../controllers/certificate.controller");
 
-// fixed folder for certificates
+/* FIXED CLOUDINARY FOLDER */
 const certificateFolder = (req, res, next) => {
   req.params.folder = "certificates";
   next();

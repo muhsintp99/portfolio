@@ -1,6 +1,5 @@
 const Blog = require("../models/Blog.model");
-const fs = require("fs");
-const path = require("path");
+const cloudinary = require("../config/cloudinary");
 
 /* CREATE */
 exports.create = async (req, res) => {
@@ -8,21 +7,21 @@ exports.create = async (req, res) => {
     const data = { ...req.body };
 
     if (req.file) {
-      data.coverImage = `/uploads/${req.params.folder}/${req.file.filename}`;
+      data.coverImage = req.file.path;        // Cloudinary URL
+      data.coverImageId = req.file.filename; // public_id
     }
 
     const blog = await Blog.create(data);
+
     res.json({ success: true, data: blog });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-/* LIST (PUBLIC) */
+/* LIST */
 exports.list = async (req, res) => {
-  const blogs = await Blog.find()
-    .sort({ createdAt: -1 });
-
+  const blogs = await Blog.find().sort({ createdAt: -1 });
   res.json({ success: true, data: blogs });
 };
 
@@ -43,15 +42,13 @@ exports.update = async (req, res) => {
     const data = { ...req.body };
 
     if (req.file) {
-      // delete old image
-      if (blog.coverImage) {
-        const oldPath = path.join(process.cwd(), blog.coverImage);
-        if (fs.existsSync(oldPath)) {
-          fs.unlinkSync(oldPath);
-        }
+      // 🔥 Delete old image from Cloudinary
+      if (blog.coverImageId) {
+        await cloudinary.uploader.destroy(blog.coverImageId);
       }
 
-      data.coverImage = `/uploads/${req.params.folder}/${req.file.filename}`;
+      data.coverImage = req.file.path;
+      data.coverImageId = req.file.filename;
     }
 
     const updated = await Blog.findByIdAndUpdate(
@@ -68,20 +65,22 @@ exports.update = async (req, res) => {
 
 /* DELETE */
 exports.remove = async (req, res) => {
-  const blog = await Blog.findById(req.params.id);
+  try {
+    const blog = await Blog.findById(req.params.id);
 
-  if (!blog) {
-    return res.status(404).json({ message: "Blog not found" });
-  }
-
-  // delete image
-  if (blog.coverImage) {
-    const imgPath = path.join(process.cwd(), blog.coverImage);
-    if (fs.existsSync(imgPath)) {
-      fs.unlinkSync(imgPath);
+    if (!blog) {
+      return res.status(404).json({ message: "Blog not found" });
     }
-  }
 
-  await blog.deleteOne();
-  res.json({ success: true, message: "Blog deleted" });
+    // 🔥 Delete image from Cloudinary
+    if (blog.coverImageId) {
+      await cloudinary.uploader.destroy(blog.coverImageId);
+    }
+
+    await blog.deleteOne();
+
+    res.json({ success: true, message: "Blog deleted" });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
